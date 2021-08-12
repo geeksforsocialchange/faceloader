@@ -69,6 +69,9 @@ func fb2ical(url string) (ics.VEvent, error) {
 	))
 	icsEvent.SetURL(event.Url)
 
+	r, _ := regexp.Compile("\\d+")
+	icsEvent.SetProperty(ics.ComponentPropertyUniqueId, r.FindString(event.Url))
+
 	startTime, _ := dateparse.ParseAny(event.StartDate)
 	icsEvent.SetStartAt(startTime)
 
