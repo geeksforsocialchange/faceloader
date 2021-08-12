@@ -20,3 +20,5 @@ echo 'ChromePath: "/usr/bin/chrome"' >> config.yaml
 ## Development
 
 Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) when writing your commit messages
+
+To release, create and push a new tag and then run `goreleaser`
