@@ -3,7 +3,7 @@ package main
 import "testing"
 
 func TestRemoveDuplicate(t *testing.T) {
-	var names  []string
+	var names []string
 
 	ans := removeDuplicateStr(names)
 	if len(ans) != 0 {

@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+// The key parts that a Facebook json+ld event includes
 type eventScheme struct {
 	Context             string `json:"@context"`
 	Type                string `json:"@type"`
@@ -41,6 +42,8 @@ type eventScheme struct {
 	Url        string        `json:"url"`
 }
 
+// take a Facebook event url and return an ICS event
+// `extract.FromURL()` does the fetching, but we may want to use Chrome in the future
 func fb2ical(url string) (ics.VEvent, error) {
 	results, _ := extract.FromURL(url)
 	encoded, _ := json.Marshal(results)
@@ -51,9 +54,6 @@ func fb2ical(url string) (ics.VEvent, error) {
 		return ics.VEvent{}, errors.New("no events found")
 	}
 	var event = events[0]
-
-	//cal := ics.NewCalendar()
-	//cal.SetMethod(ics.MethodRequest)
 
 	var icsEvent ics.VEvent
 
@@ -69,6 +69,7 @@ func fb2ical(url string) (ics.VEvent, error) {
 	))
 	icsEvent.SetURL(event.Url)
 
+	// build the event UID from the numeric ID of the event from the URL
 	r, _ := regexp.Compile("\\d+")
 	icsEvent.SetProperty(ics.ComponentPropertyUniqueId, r.FindString(event.Url))
 
@@ -82,6 +83,7 @@ func fb2ical(url string) (ics.VEvent, error) {
 	return icsEvent, nil
 }
 
+// de-duplicate a slice of strings
 func removeDuplicateStr(strSlice []string) []string {
 	allKeys := make(map[string]bool)
 	list := []string{}
@@ -94,8 +96,11 @@ func removeDuplicateStr(strSlice []string) []string {
 	return list
 }
 
+// find links to Facebook events from a url, using Chrome so that we do it as a logged-in Facebook user
 func getFacebookEventLinks(pageUrl string, chrome string) []string {
 	var links []string
+	// @TODO switch to using https://github.com/chromedp/chromedp to let us click the more links
+	// @TODO add --user-data-dir and --profile-directory to be logged in
 	out, err := exec.Command(chrome, "--headless", "--disable-gpu", "--dump-dom", pageUrl).Output()
 	if err != nil {
 		log.Fatal(err)
@@ -123,6 +128,7 @@ func getFacebookEventLinks(pageUrl string, chrome string) []string {
 }
 
 func main() {
+	// read config from config.yaml.  We can improve this and make a nice ui to edit in the future
 	c := viper.New()
 	c.SetConfigFile("./config.yaml")
 	err := c.ReadInConfig()
@@ -131,10 +137,11 @@ func main() {
 	}
 	c.SetDefault("ChromePath", "/opt/google/chrome/chrome")
 
-
+	// build a new calendar
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodRequest)
 
+	// add events to the calendar
 	events := getFacebookEventLinks(c.GetString("FacebookPage"), c.GetString("ChromePath"))
 	for _, event := range events {
 		u, _ := url.Parse(event)
@@ -147,5 +154,7 @@ func main() {
 			cal.Components = append(cal.Components, &calEvent)
 		}
 	}
+
+	// @TODO write to a file instead of stdout
 	fmt.Print(cal.Serialize())
 }
