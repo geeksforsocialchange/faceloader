@@ -1,4 +1,4 @@
-module github.com/wheresalice/faceloader
+module github.com/geeksforsocialchange/faceloader
 
 go 1.16
 
