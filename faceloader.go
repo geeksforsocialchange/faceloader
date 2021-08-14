@@ -9,13 +9,9 @@ import (
 	"github.com/araddon/dateparse"
 	ics "github.com/arran4/golang-ical"
 	"github.com/daetal-us/getld/extract"
-	"github.com/getlantern/systray"
-	"github.com/getlantern/systray/example/icon"
-	"github.com/go-co-op/gocron"
 	"github.com/spf13/viper"
 	"log"
 	"net/url"
-	"os"
 	"os/exec"
 	"regexp"
 	"time"
@@ -127,14 +123,19 @@ func getFacebookEventLinks(pageUrl string, chrome string) []string {
 }
 
 func main() {
-	systray.Run(onReady, onExit)
-}
+	c := viper.New()
+	c.SetConfigFile("./config.yaml")
+	err := c.ReadInConfig()
+	if err != nil {
+		fmt.Errorf("Error %v\n", err)
+	}
+	c.SetDefault("ChromePath", "/opt/google/chrome/chrome")
 
-func writeCalendar(path string, page string, chrome string) {
+
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodRequest)
 
-	events := getFacebookEventLinks(page, chrome)
+	events := getFacebookEventLinks(c.GetString("FacebookPage"), c.GetString("ChromePath"))
 	for _, event := range events {
 		u, _ := url.Parse(event)
 		u.Scheme = "https"
@@ -147,44 +148,4 @@ func writeCalendar(path string, page string, chrome string) {
 		}
 	}
 	fmt.Print(cal.Serialize())
-
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	cal.SerializeTo(f)
-
-}
-
-
-func onReady() {
-	systray.SetIcon(icon.Data)
-	systray.SetTitle("Awesome App")
-	systray.SetTooltip("Pretty awesome超级棒")
-	mQuit := systray.AddMenuItem("Quit", "Quit the whole app")
-	go func() {
-		<-mQuit.ClickedCh
-		fmt.Println("Requesting quit")
-		systray.Quit()
-		fmt.Println("Finished quitting")
-	}()
-
-	c := viper.New()
-	c.SetConfigFile("./config.yaml")
-	err := c.ReadInConfig()
-	if err != nil {
-		fmt.Errorf("Error %v\n", err)
-	}
-	c.SetDefault("ChromePath", "/opt/google/chrome/chrome")
-	c.SetDefault("CalendarPath", "/tmp/calendar.ics")
-
-	s := gocron.NewScheduler(time.UTC)
-	s.Every(1).Hours().Do(func(){ writeCalendar(c.GetString("CalendarPath"), c.GetString("FacebookPage"), c.GetString("ChromePath")) })
-
-	s.StartAsync()
-}
-
-func onExit() {
-	// clean up here
 }
