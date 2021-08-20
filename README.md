@@ -27,9 +27,13 @@ echo 'ChromePath: "/usr/bin/chrome"' >> config.yaml
 
 ## Running
 
+To run the development version in this repo:
+
 ```shell
-./faceloader > calendar.ics
+go run faceloader.go > calendar.ics
 ```
+
+Run `go build` to create a binary from the source code
 
 ## Development
 
