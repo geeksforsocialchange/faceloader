@@ -21,8 +21,13 @@ FaceLoader was designed primarily to be used with the PlaceCal event aggregation
 ```shell
 # set your page's url
 echo 'FacebookPage: "https://www.facebook.com/myfacebookpage/events"' > config.yaml
-# set the path to the chrome binary on your computer
+
+# find out where chrome is on your computer
+find / -type d -name "*Chrome.app"
+# on linux this is probably:
 echo 'ChromePath: "/usr/bin/chrome"' >> config.yaml
+# on a mac this is probably:
+echo 'ChromePath: "/System/Volumes/Data/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"' >> config.yaml
 ```
 
 ## Running
