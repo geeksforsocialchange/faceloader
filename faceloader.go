@@ -1,18 +1,18 @@
 package main
 
 import (
-	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/araddon/dateparse"
 	ics "github.com/arran4/golang-ical"
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/chromedp"
 	"github.com/daetal-us/getld/extract"
 	"github.com/spf13/viper"
 	"log"
 	"net/url"
-	"os/exec"
 	"regexp"
 	"time"
 )
@@ -97,33 +97,62 @@ func removeDuplicateStr(strSlice []string) []string {
 }
 
 // find links to Facebook events from a url, using Chrome so that we do it as a logged-in Facebook user
-func getFacebookEventLinks(pageUrl string, chrome string) []string {
+func getFacebookEventLinks(pageUrl string, chrome string, profileDirectory string) []string {
 	var links []string
-	// @TODO switch to using https://github.com/chromedp/chromedp to let us click the more links
-	// @TODO add --user-data-dir and --profile-directory to be logged in
-	out, err := exec.Command(chrome, "--headless", "--disable-gpu", "--dump-dom", pageUrl).Output()
-	if err != nil {
-		log.Fatal(err)
-	}
-	//fmt.Printf("DOM: %s\n", out)
 
-	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(out))
-	if err != nil {
-		log.Fatal(err)
-	}
-	doc.Find("a").Each(func(i int, s *goquery.Selection) {
-		link, ok := s.Attr("href")
-		if ok {
-			u, err := url.Parse(link)
-			if err != nil {
-				log.Fatal(err)
-			}
-			match, _ := regexp.MatchString("/events/\\d+/", u.Path)
-			if match {
-				links = append(links, u.Path)
-			}
-		}
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		// if user-data-dir is set, chrome won't load the default profile,
+		// even if it's set to the directory where the default profile is stored.
+		// set it to empty to prevent chromedp from setting it to a temp directory.
+		chromedp.UserDataDir(""),
+		// in headless mode, chrome won't load the default profile.
+		chromedp.Flag("headless", false),
+		chromedp.Flag("disable-extensions", false),
+		chromedp.Flag("profile-directory", profileDirectory),
+		chromedp.Flag("enable-automation", false),
+		chromedp.Flag("restore-on-startup", false),
+		chromedp.ExecPath(chrome),
+	)
+
+	ctx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+
+	ctx, cancel = chromedp.NewContext(ctx)
+	defer cancel()
+
+	ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	var nodes []*cdp.Node
+	waitSelector := "#facebook a"
+	linksSelector := "#facebook a"
+	var res interface{}
+	err := chromedp.Run(ctx, chromedp.Tasks{
+		chromedp.Navigate(pageUrl),
+		chromedp.WaitReady(waitSelector),
+		// We can't use chromedp.Click() because the 'See more' link might not actually exist
+		chromedp.EvaluateAsDevTools("let more = document.querySelector('div[aria-label=\"See more\"]'); if (more){more.click()};''", &res),
+		chromedp.Sleep(2 * time.Second),
+		chromedp.EvaluateAsDevTools("more = document.querySelector('div[aria-label=\"See more\"]'); if (more){more.click()};''", &res),
+		chromedp.Sleep(2 * time.Second),
+		chromedp.EvaluateAsDevTools("more = document.querySelector('div[aria-label=\"See more\"]'); if (more){more.click()};''", &res),
+		chromedp.Sleep(2 * time.Second),
+		chromedp.Nodes(linksSelector, &nodes),
 	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	for _, node := range nodes {
+		href := node.AttributeValue("href")
+		url, err := url.Parse(href)
+		if err != nil {
+			log.Fatal(err)
+		}
+		match, _ := regexp.MatchString("/events/\\d+/", url.Path)
+		if match {
+			links = append(links, url.Path)
+		}
+	}
 	return removeDuplicateStr(links)
 }
 
@@ -136,13 +165,16 @@ func main() {
 		fmt.Errorf("Error %v\n", err)
 	}
 	c.SetDefault("ChromePath", "/opt/google/chrome/chrome")
+	c.SetDefault("ProfileDirectory", "Default")
 
 	// build a new calendar
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodRequest)
 
 	// add events to the calendar
-	events := getFacebookEventLinks(c.GetString("FacebookPage"), c.GetString("ChromePath"))
+	events := getFacebookEventLinks(c.GetString("FacebookPage"),
+		c.GetString("ChromePath"),
+		c.GetString("ProfileDirectory"))
 	for _, event := range events {
 		u, _ := url.Parse(event)
 		u.Scheme = "https"
