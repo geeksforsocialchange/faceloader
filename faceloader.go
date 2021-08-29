@@ -180,11 +180,12 @@ func getFacebookEventLinks(ctx context.Context, pageUrl string) []string {
 func main() {
 	// read config from config.yaml.  We can improve this and make a nice ui to edit in the future
 	c := viper.New()
-	c.SetConfigFile("./config.yaml")
-	err := c.ReadInConfig()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	c.SetConfigName(".faceloader")
+	c.AddConfigPath(".")
+	c.AddConfigPath("$HOME")
+	c.AutomaticEnv()
+	_ = c.ReadInConfig()
+
 	c.SetDefault("ChromePath", "/opt/google/chrome/chrome")
 
 	// build a new calendar
@@ -192,10 +193,12 @@ func main() {
 	cal.SetMethod(ics.MethodRequest)
 
 	_, browserContext := browserContext(c.GetString("ChromePath"))
-	err = maybeLogin(browserContext, c.GetString("Username"), c.GetString("Password"))
+	err := maybeLogin(browserContext, c.GetString("Username"), c.GetString("Password"))
 	if err != nil {
 		log.Println(err)
 	}
+
+	log.Println(c.GetString("FacebookPage"))
 
 	// add events to the calendar
 	events := getFacebookEventLinks(browserContext, c.GetString("FacebookPage"))
