@@ -30,8 +30,9 @@ echo 'ChromePath: "/usr/bin/chrome"' >> config.yaml
 # on a mac this is probably:
 echo 'ChromePath: "/System/Volumes/Data/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"' >> config.yaml
 
-# optionally set your Chrome profile directory if it's something other than 'Default'
-echo 'ProfileDirectory: "Profile-1"' >> config.yaml
+# set your Facebook credentials in the config file
+echo 'Username: "alice@example.org"' >> config.yaml
+echo 'Password: "T0pS3cr3t"' >> config.yaml
 ```
 
 ## Running
@@ -43,14 +44,6 @@ go run faceloader.go > calendar.ics
 ```
 
 Run `go build` to create a binary from the source code
-
-## Known issues
-
-The current iteration of Faceloader requires Chrome to not be running before executing it
-
-This is because it expects to run a new Chrome browser in the foreground
-
-Without running in the foreground, we can't use a user-profile which means we aren't logged in, which means we get fewer events
 
 ## Development
 

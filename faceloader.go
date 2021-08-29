@@ -8,11 +8,14 @@ import (
 	"github.com/araddon/dateparse"
 	ics "github.com/arran4/golang-ical"
 	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 	"github.com/daetal-us/getld/extract"
 	"github.com/spf13/viper"
 	"log"
 	"net/url"
+	"os"
+	"path"
 	"regexp"
 	"time"
 )
@@ -96,31 +99,49 @@ func removeDuplicateStr(strSlice []string) []string {
 	return list
 }
 
-// find links to Facebook events from a url, using Chrome so that we do it as a logged-in Facebook user
-func getFacebookEventLinks(pageUrl string, chrome string, profileDirectory string) []string {
-	var links []string
+func browserContext(chrome string) (context.Context, context.Context) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalf("Couldn't get home directory: %s", err)
+	}
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		// if user-data-dir is set, chrome won't load the default profile,
-		// even if it's set to the directory where the default profile is stored.
-		// set it to empty to prevent chromedp from setting it to a temp directory.
-		chromedp.UserDataDir(""),
-		// in headless mode, chrome won't load the default profile.
-		chromedp.Flag("headless", false),
-		chromedp.Flag("disable-extensions", false),
-		chromedp.Flag("profile-directory", profileDirectory),
-		chromedp.Flag("enable-automation", false),
-		chromedp.Flag("restore-on-startup", false),
+		chromedp.DisableGPU,
 		chromedp.ExecPath(chrome),
+		chromedp.UserDataDir(path.Join(home, ".faceloader", "userdata")),
 	)
+	allocatorCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
+	browserCtx, _ := chromedp.NewContext(allocatorCtx)
 
-	ctx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	chromedp.Run(browserCtx)
 
-	ctx, cancel = chromedp.NewContext(ctx)
-	defer cancel()
+	return allocatorCtx, browserCtx
+}
 
-	ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
+func maybeLogin(ctx context.Context, username string, password string) error {
+	// @TODO this seems to need to login every run, despite saving cookies
+
+	selName := `//input[@id="email"]`
+	selPass := `//input[@id="pass"]`
+
+	err := chromedp.Run(ctx, chromedp.Tasks{
+		network.Enable(),
+		chromedp.Navigate(`https://www.facebook.com`),
+		chromedp.WaitVisible(selPass),
+		chromedp.SendKeys(selName, username),
+		chromedp.SendKeys(selPass, password),
+		chromedp.Submit(selPass),
+		//chromedp.WaitVisible(`//a[@title="Profile"]`),
+	})
+	if err == nil {
+		log.Println("Performed login")
+	}
+	return err
+}
+
+// find links to Facebook events from a url, using Chrome so that we do it as a logged-in Facebook user
+func getFacebookEventLinks(ctx context.Context, pageUrl string) []string {
+	var links []string
 
 	var nodes []*cdp.Node
 	waitSelector := "#facebook a"
@@ -162,19 +183,22 @@ func main() {
 	c.SetConfigFile("./config.yaml")
 	err := c.ReadInConfig()
 	if err != nil {
-		fmt.Errorf("Error %v\n", err)
+		log.Fatalln(err)
 	}
 	c.SetDefault("ChromePath", "/opt/google/chrome/chrome")
-	c.SetDefault("ProfileDirectory", "Default")
 
 	// build a new calendar
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodRequest)
 
+	_, browserContext := browserContext(c.GetString("ChromePath"))
+	err = maybeLogin(browserContext, c.GetString("Username"), c.GetString("Password"))
+	if err != nil {
+		log.Println(err)
+	}
+
 	// add events to the calendar
-	events := getFacebookEventLinks(c.GetString("FacebookPage"),
-		c.GetString("ChromePath"),
-		c.GetString("ProfileDirectory"))
+	events := getFacebookEventLinks(browserContext, c.GetString("FacebookPage"))
 	for _, event := range events {
 		u, _ := url.Parse(event)
 		u.Scheme = "https"
@@ -189,4 +213,10 @@ func main() {
 
 	// @TODO write to a file instead of stdout
 	fmt.Print(cal.Serialize())
+
+	// Manually cancel the context to gracefully close the browser
+	err = chromedp.Cancel(browserContext)
+	if err != nil {
+		log.Fatalf("error canceling browserContext: %s\n", err)
+	}
 }
