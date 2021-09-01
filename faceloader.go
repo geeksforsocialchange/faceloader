@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -139,6 +140,9 @@ func maybeLogin(ctx context.Context, username string, password string) error {
 	return err
 }
 
+//go:embed more.js
+var more string
+
 // find links to Facebook events from a url, using Chrome so that we do it as a logged-in Facebook user
 func getFacebookEventLinks(ctx context.Context, pageUrl string) []string {
 	var links []string
@@ -151,11 +155,11 @@ func getFacebookEventLinks(ctx context.Context, pageUrl string) []string {
 		chromedp.Navigate(pageUrl),
 		chromedp.WaitReady(waitSelector),
 		// We can't use chromedp.Click() because the 'See more' link might not actually exist
-		chromedp.EvaluateAsDevTools("let more = document.querySelector('div[aria-label=\"See more\"]'); if (more){more.click()};''", &res),
+		chromedp.EvaluateAsDevTools(more, &res),
 		chromedp.Sleep(2 * time.Second),
-		chromedp.EvaluateAsDevTools("more = document.querySelector('div[aria-label=\"See more\"]'); if (more){more.click()};''", &res),
+		chromedp.EvaluateAsDevTools(more, &res),
 		chromedp.Sleep(2 * time.Second),
-		chromedp.EvaluateAsDevTools("more = document.querySelector('div[aria-label=\"See more\"]'); if (more){more.click()};''", &res),
+		chromedp.EvaluateAsDevTools(more, &res),
 		chromedp.Sleep(2 * time.Second),
 		chromedp.Nodes(linksSelector, &nodes),
 	})
