@@ -1,4 +1,4 @@
-const upcommingEventsTest = (more, pastEvents) => {
+const upcomingEventsTest = (more, pastEvents) => {
 	if (!more) return false;
 	if (!pastEvents) return true;
 	if (more.getBoundingClientRect().y > pastEvents.getBoundingClientRect().y)
@@ -12,7 +12,7 @@ new Promise((resolve) => {
 		const pastEvents = [...document.querySelectorAll("span")].filter(
 			(el) => el.innerText === "Past events",
 		)[0];
-		if (!upcommingEventsTest(more, pastEvents)) resolve();
+		if (!upcomingEventsTest(more, pastEvents)) resolve();
 		more.click();
 		setTimeout(clickMore, 2000);
 	};
