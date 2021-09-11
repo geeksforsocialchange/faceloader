@@ -10,6 +10,7 @@ import (
 	ics "github.com/arran4/golang-ical"
 	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/cdproto/network"
+	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 	"github.com/daetal-us/getld/extract"
 	"github.com/spf13/viper"
@@ -100,10 +101,19 @@ func removeDuplicateStr(strSlice []string) []string {
 	return list
 }
 
-func browserContext(chrome string) (context.Context, context.Context) {
+func browserContext(chrome string, debug bool) (context.Context, context.Context) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatalf("Couldn't get home directory: %s", err)
+	}
+
+	var contextOpts []chromedp.ContextOption
+	if debug {
+		contextOpts = []chromedp.ContextOption{
+			chromedp.WithLogf(log.Printf),
+			chromedp.WithDebugf(log.Printf),
+			chromedp.WithErrorf(log.Printf),
+		}
 	}
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
@@ -112,7 +122,22 @@ func browserContext(chrome string) (context.Context, context.Context) {
 		chromedp.UserDataDir(path.Join(home, ".faceloader", "userdata")),
 	)
 	allocatorCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
-	browserCtx, _ := chromedp.NewContext(allocatorCtx)
+	browserCtx, _ := chromedp.NewContext(allocatorCtx, contextOpts...)
+
+	if debug {
+		chromedp.ListenTarget(browserCtx, func(ev interface{}) {
+			switch ev := ev.(type) {
+			case *runtime.EventConsoleAPICalled:
+				log.Printf("* console.%s call:\n", ev.Type)
+				for _, arg := range ev.Args {
+					log.Printf("%s - %s\n", arg.Type, arg.Value)
+				}
+			case *runtime.EventExceptionThrown:
+				s := ev.ExceptionDetails.Error()
+				log.Printf("* %s\n", s)
+			}
+		})
+	}
 
 	chromedp.Run(browserCtx)
 
@@ -191,12 +216,13 @@ func main() {
 	_ = c.ReadInConfig()
 
 	c.SetDefault("ChromePath", "/opt/google/chrome/chrome")
+	c.SetDefault("Debug", false)
 
 	// build a new calendar
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodRequest)
 
-	_, browserContext := browserContext(c.GetString("ChromePath"))
+	_, browserContext := browserContext(c.GetString("ChromePath"), c.GetBool("Debug"))
 	err := maybeLogin(browserContext, c.GetString("Username"), c.GetString("Password"))
 	if err != nil {
 		log.Println(err)

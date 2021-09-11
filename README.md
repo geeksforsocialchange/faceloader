@@ -45,6 +45,8 @@ export USERNAME="alice@example.com"
 export PASSWORD="T0ps3cr3t"
 ```
 
+You can set Debug=true using any of these methods to get a lot more information about what Chrome is doing.  But note that this is very verbose, and may include sensitive information.
+
 ## Running
 
 To run the development version in this repo:
