@@ -1,9 +1,9 @@
+// Check that 'more' will not load past events.
+// Return early if test not required.
 const upcomingEventsTest = (more, pastEvents) => {
 	if (!more) return false;
 	if (!pastEvents) return true;
-	if (more.getBoundingClientRect().y > pastEvents.getBoundingClientRect().y)
-		return false;
-	return true;
+	return more.getBoundingClientRect().y < pastEvents.getBoundingClientRect().y;
 };
 
 new Promise((resolve) => {
