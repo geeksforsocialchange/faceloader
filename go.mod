@@ -9,5 +9,5 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20210713064928-7d28b402946a
 	github.com/chromedp/chromedp v0.7.4
 	github.com/daetal-us/getld v1.0.1
-	github.com/spf13/viper v1.8.1
+	github.com/spf13/viper v1.9.0
 )
