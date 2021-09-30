@@ -14,6 +14,7 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/daetal-us/getld/extract"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -149,7 +150,6 @@ func maybeLogin(ctx context.Context, username string, password string) error {
 
 	selName := `//input[@id="email"]`
 	selPass := `//input[@id="pass"]`
-
 	err := chromedp.Run(ctx, chromedp.Tasks{
 		network.Enable(),
 		chromedp.Navigate(`https://www.facebook.com`),
@@ -173,21 +173,27 @@ func awaitPromise(params *runtime.EvaluateParams) *runtime.EvaluateParams {
 }
 
 // find links to Facebook events from a url, using Chrome so that we do it as a logged-in Facebook user
-func getFacebookEventLinks(ctx context.Context, pageUrl string) []string {
+func getFacebookEventLinks(ctx context.Context, pageUrl string, debug bool) []string {
 	var links []string
 
 	var nodes []*cdp.Node
 	waitSelector := "#facebook a"
 	linksSelector := "#facebook a"
 	var res interface{}
+	var buf []byte
 	err := chromedp.Run(ctx, chromedp.Tasks{
 		chromedp.Navigate(pageUrl),
 		chromedp.WaitReady(waitSelector),
 		chromedp.EvaluateAsDevTools(more, &res, awaitPromise),
+		chromedp.FullScreenshot(&buf, 90),
 		chromedp.Nodes(linksSelector, &nodes),
 	})
 	if err != nil {
 		log.Fatalln(err)
+	}
+	if debug {
+		ioutil.WriteFile("fullScreenshot.png", buf, 0o600)
+		log.Println("Saved screenshot of final event listing page to fullScreenshot.png")
 	}
 
 	for _, node := range nodes {
@@ -229,7 +235,7 @@ func main() {
 	log.Println(c.GetString("FacebookPage"))
 
 	// add events to the calendar
-	events := getFacebookEventLinks(browserContext, c.GetString("FacebookPage"))
+	events := getFacebookEventLinks(browserContext, c.GetString("FacebookPage"), c.GetBool("Debug"))
 	for _, event := range events {
 		u, _ := url.Parse(event)
 		u.Scheme = "https"
