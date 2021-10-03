@@ -1,6 +1,8 @@
 # Faceloader
 
-A single binary to generate an ical file with multiple events linked from a Facebook page
+A single binary to generate an ical file with multiple events linked from a Facebook page.
+
+Please note this is a very early attempt at a proof of concept and not suitable for any kind of use yet really.
 
 ## Why did we make FaceLoader?
 
