@@ -150,10 +150,12 @@ func maybeLogin(ctx context.Context, username string, password string) error {
 
 	selName := `//input[@id="email"]`
 	selPass := `//input[@id="pass"]`
+	var res interface{}
 	err := chromedp.Run(ctx, chromedp.Tasks{
 		network.Enable(),
 		chromedp.Navigate(`https://www.facebook.com`),
 		chromedp.WaitVisible(selPass),
+		chromedp.EvaluateAsDevTools(`document.querySelector('button[data-cookiebanner="accept_button"]').click()`, &res, awaitPromise),
 		chromedp.SendKeys(selName, username),
 		chromedp.SendKeys(selPass, password),
 		chromedp.Submit(selPass),
