@@ -71,4 +71,4 @@ Run `go build` to create a binary from the source code
 
 Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) when writing your commit messages
 
-To release, create and push a new tag and then run `goreleaser`
+To release, create and push a new tag. GitHub Actiona will perform a release for you.
