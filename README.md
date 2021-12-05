@@ -1,5 +1,13 @@
 # Faceloader
 
+
+[![Release](https://img.shields.io/github/release-pre/geeksforsocialchange/faceloader.svg?logo=github&style=flat&v=1)](https://github.com/geeksforsocialchange/faceloader/releases)
+[![Build Status](https://img.shields.io/github/workflow/status/geeksforsocialchange/faceloader/run-go-tests?logo=github&v=1)](https://github.com/geeksforsocialchange/faceloader/actions)
+[![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/geeksforsocialchange/faceloader&style=flat&v=1)](https://mergify.io)
+[![Go](https://img.shields.io/github/go-mod/go-version/geeksforsocialchange/faceloader?v=1)](https://golang.org/)
+[![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/geeksforsocialchange/faceloader)
+
+
 A single binary to generate an ical file with multiple events linked from a Facebook page.
 
 Please note this is a very early attempt at a proof of concept and not suitable for any kind of use yet really.

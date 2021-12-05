@@ -27,3 +27,6 @@ changelog:
       - '^docs:'
       - '^test:'
       - Merge pull request
+release:
+  prerelease: true
+  name_template: "Release v{{.Version}}"

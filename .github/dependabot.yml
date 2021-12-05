@@ -6,9 +6,17 @@ updates:
     directory: /
     schedule:
       interval: weekly
+      day: friday
+    labels:
+      - "chore"
+    open-pull-requests-limit: 10
 
   # Manage Go package versions.
   - package-ecosystem: gomod
     directory: /
     schedule:
       interval: weekly
+      day: friday
+    labels:
+      - "chore"
+    open-pull-requests-limit: 10
