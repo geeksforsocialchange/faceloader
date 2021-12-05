@@ -146,16 +146,17 @@ func browserContext(chrome string, debug bool) (context.Context, context.Context
 }
 
 func maybeLogin(ctx context.Context, username string, password string) error {
-	// @TODO this seems to need to login every run, despite saving cookies
+	timeoutContext, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
 
 	selName := `//input[@id="email"]`
 	selPass := `//input[@id="pass"]`
-	var res interface{}
-	err := chromedp.Run(ctx, chromedp.Tasks{
+	var acceptRes interface{}
+	err := chromedp.Run(timeoutContext, chromedp.Tasks{
 		network.Enable(),
 		chromedp.Navigate(`https://www.facebook.com`),
 		chromedp.WaitVisible(selPass),
-		chromedp.EvaluateAsDevTools(`document.querySelector('button[data-cookiebanner="accept_button"]').click()`, &res, awaitPromise),
+		chromedp.EvaluateAsDevTools(acceptCookiesJS, &acceptRes, awaitPromise),
 		chromedp.SendKeys(selName, username),
 		chromedp.SendKeys(selPass, password),
 		chromedp.Submit(selPass),
@@ -167,8 +168,11 @@ func maybeLogin(ctx context.Context, username string, password string) error {
 	return err
 }
 
-//go:embed more.js
-var more string
+//go:embed js/more.js
+var moreJS string
+
+//go:embed js/acceptCookies.js
+var acceptCookiesJS string
 
 func awaitPromise(params *runtime.EvaluateParams) *runtime.EvaluateParams {
 	return params.WithAwaitPromise(true)
@@ -186,7 +190,7 @@ func getFacebookEventLinks(ctx context.Context, pageUrl string, debug bool) []st
 	err := chromedp.Run(ctx, chromedp.Tasks{
 		chromedp.Navigate(pageUrl),
 		chromedp.WaitReady(waitSelector),
-		chromedp.EvaluateAsDevTools(more, &res, awaitPromise),
+		chromedp.EvaluateAsDevTools(moreJS, &res, awaitPromise),
 		chromedp.FullScreenshot(&buf, 90),
 		chromedp.Nodes(linksSelector, &nodes),
 	})
