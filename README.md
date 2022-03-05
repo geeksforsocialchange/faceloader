@@ -26,6 +26,14 @@ FaceLoader is a desktop app that takes the name of one or more Facebook pages an
 
 FaceLoader was designed primarily to be used with the PlaceCal event aggregation platform, which requires a public iCal feed or API to operate. We developed FaceLoader out of frustration with Facebook's insistance on making interoperability a total pain in the butt.
 
+## Installation
+
+```
+git clone https://github.com/geeksforsocialchange/faceloader
+cd faceloader
+go run .
+```
+
 ## Usage
 
 1. Add all the Facebook event pages that you want to load events from
