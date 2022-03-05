@@ -26,49 +26,17 @@ FaceLoader is a desktop app that takes the name of one or more Facebook pages an
 
 FaceLoader was designed primarily to be used with the PlaceCal event aggregation platform, which requires a public iCal feed or API to operate. We developed FaceLoader out of frustration with Facebook's insistance on making interoperability a total pain in the butt.
 
-## Configuration
+## Usage
 
-```shell
-# set your page's url
-echo 'FacebookPage: "https://www.facebook.com/myfacebookpage/events"' > .faceloader.yaml
+1. Add all the Facebook event pages that you want to load events from
+2. Provide the path to Chrome (eg /usr/bin/chrome)
+3. Provide your Facebook username and password (it runs without, but won't find as many events)
+4. Press "Submit" and be patient
 
-# find out where chrome is on your computer
-find / -type d -name "*Chrome.app"
-# on linux this is probably:
-echo 'ChromePath: "/usr/bin/chrome"' >> .faceloader.yaml
-
-# on a mac this is probably:
-echo 'ChromePath: "/System/Volumes/Data/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome"' >> .faceloader.yaml
-
-# set your Facebook credentials in the config file
-echo 'Username: "alice@example.org"' >> .faceloader.yaml
-echo 'Password: "T0pS3cr3t"' >> .faceloader.yaml
-```
-
-Alternatively, you can store your `.faceloader.yaml` file in your home directory.  `.faceloader.json` or `.faceloader.toml` also work if you prefer
-
-Or you can use environment variables:
-
-```shell
-export FACEBOOKPAGE="https://www.facebook.com/myfacebookpage/events"
-export USERNAME="alice@example.com"
-export PASSWORD="T0ps3cr3t"
-```
-
-You can set Debug=true using any of these methods to get a lot more information about what Chrome is doing.  But note that this is very verbose, and may include sensitive information.
-
-## Running
-
-To run the development version in this repo:
-
-```shell
-go run faceloader.go > calendar.ics
-```
-
-Run `go build` to create a binary from the source code
+The ical file will be shown in the output
 
 ## Development
 
 Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) when writing your commit messages
 
-To release, create and push a new tag. GitHub Actiona will perform a release for you.
+To release, create and push a new tag. GitHub Actions will perform a release for you.
