@@ -1,19 +1,12 @@
-# From: https://goreleaser.com/ci/actions/#usage
-name: release
-
-env:
-  GO111MODULE: on
-
+name: Fyne cross-compile Faceloader
 on:
   push:
-    tags:
-      - '*'
-
+    branches:
+      - main
 permissions:
   contents: write
-
 jobs:
-  goreleaser:
+  package-faceloader-linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,11 +17,86 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: "1.17.5"
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v2.9.1
+      - name: create the release
+        uses: google-github-actions/release-please-action@v3.1
+        id: release
         with:
-          distribution: goreleaser
-          version: latest
-          args: release --rm-dist --debug
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          release-type: go
+      - name: Install native deps
+        run: |
+          sudo apt update
+          sudo apt install gcc libgl1-mesa-dev xorg-dev -y
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Go test
+        run: |
+          go mod tidy
+          go test ./...
+      - name: Install Fyne CLI
+        run: |
+          go install fyne.io/fyne/v2/cmd/fyne@latest
+          $HOME/go/bin/fyne version
+      - name: Fyne Package
+        run: |
+          $HOME/go/bin/fyne package
+      - name: Upload package
+        uses: softprops/action-gh-release@v1
+        if: steps.release.outputs.release_created
+        with:
+          tag_name: ${{ steps.release.outputs.tag_name }}
+          files: "faceloader.tar.xz"
+  package-faceloader-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install native deps
+        run: |
+          choco install msys2
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Go test
+        run: |
+          go mod tidy
+          go test ./...
+      - name: Install Fyne CLI
+        run: |
+          go install fyne.io/fyne/v2/cmd/fyne@latest
+          Start-Process -PSPath "$HOME\go\bin\fyne.exe" -ArgumentList "version" -NoNewWindow -Wait
+      - name: Fyne Package
+        run: |
+          Start-Process -PSPath "$HOME\go\bin\fyne.exe" -ArgumentList "package" -NoNewWindow -Wait
+      - name: Upload package
+        uses: softprops/action-gh-release@v1
+        if: steps.release.outputs.release_created
+        with:
+          tag_name: ${{ steps.release.outputs.tag_name }}
+          files: faceloader.exe
+  package-faceloader-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - name: Go test
+        run: |
+          go mod tidy
+          go test ./...
+      - name: Install Fyne CLI
+        run: |
+          go install fyne.io/fyne/v2/cmd/fyne@latest
+          $HOME/go/bin/fyne version
+      - name: Fyne Package
+        run: |
+          $HOME/go/bin/fyne package
+      - name: Upload package
+        uses: softprops/action-gh-release@v1
+        if: steps.release.outputs.release_created
+        with:
+          tag_name: ${{ steps.release.outputs.tag_name }}
+          files: "faceloader.app"

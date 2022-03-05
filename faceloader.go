@@ -1,265 +1,82 @@
 package main
 
 import (
-	"context"
-	_ "embed"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/araddon/dateparse"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/widget"
 	ics "github.com/arran4/golang-ical"
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/network"
-	"github.com/chromedp/cdproto/runtime"
-	"github.com/chromedp/chromedp"
-	"github.com/daetal-us/getld/extract"
-	"github.com/spf13/viper"
-	"io/ioutil"
+	"github.com/geeksforsocialchange/faceloader/parser"
 	"log"
 	"net/url"
-	"os"
-	"path"
-	"regexp"
-	"time"
+	"strings"
 )
 
-// The key parts that a Facebook json+ld event includes
-type eventScheme struct {
-	Context             string `json:"@context"`
-	Type                string `json:"@type"`
-	Description         string `json:"description"`
-	EndDate             string `json:"endDate"`
-	EventAttendanceMode string `json:"eventAttendanceMode"`
-	Image               string `json:"image"`
-	Location            struct {
-		Type    string `json:"@type"`
-		Address struct {
-			Type            string `json:"@type"`
-			AddressCountry  string `json:"addressCountry"`
-			AddressLocality string `json:"addressLocality"`
-			PostalCode      string `json:"postalCode"`
-			StreetAddress   string `json:"streetAddress"`
-		} `json:"address"`
-		Name string `json:"name"`
-	} `json:"location"`
-	Name       string        `json:"name"`
-	Performers []interface{} `json:"performers"`
-	StartDate  string        `json:"startDate"`
-	Url        string        `json:"url"`
-}
-
-// take a Facebook event url and return an ICS event
-// `extract.FromURL()` does the fetching, but we may want to use Chrome in the future
-func fb2ical(url string) (ics.VEvent, error) {
-	results, _ := extract.FromURL(url)
-	encoded, _ := json.Marshal(results)
-
-	var events []eventScheme
-	json.Unmarshal(encoded, &events)
-	if len(events) == 0 {
-		return ics.VEvent{}, errors.New("no events found")
-	}
-	var event = events[0]
-
-	var icsEvent ics.VEvent
-
-	icsEvent.SetDescription(event.Description)
-	icsEvent.SetSummary(event.Name)
-	//@todo join the non-null location parts
-	icsEvent.SetLocation(fmt.Sprintf("%s, %s, %s, %s, %s",
-		event.Location.Name,
-		event.Location.Address.StreetAddress,
-		event.Location.Address.AddressLocality,
-		event.Location.Address.PostalCode,
-		event.Location.Address.AddressCountry,
-	))
-	icsEvent.SetURL(event.Url)
-
-	// build the event UID from the numeric ID of the event from the URL
-	r, _ := regexp.Compile("\\d+")
-	icsEvent.SetProperty(ics.ComponentPropertyUniqueId, r.FindString(event.Url))
-
-	startTime, _ := dateparse.ParseAny(event.StartDate)
-	icsEvent.SetStartAt(startTime)
-
-	endTime, _ := dateparse.ParseAny(event.EndDate)
-	icsEvent.SetEndAt(endTime)
-	icsEvent.SetDtStampTime(time.Now())
-
-	return icsEvent, nil
-}
-
-// de-duplicate a slice of strings
-func removeDuplicateStr(strSlice []string) []string {
-	allKeys := make(map[string]bool)
-	list := []string{}
-	for _, item := range strSlice {
-		if _, value := allKeys[item]; !value {
-			allKeys[item] = true
-			list = append(list, item)
-		}
-	}
-	return list
-}
-
-func browserContext(chrome string, debug bool) (context.Context, context.Context) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("Couldn't get home directory: %s", err)
-	}
-
-	var contextOpts []chromedp.ContextOption
-	if debug {
-		contextOpts = []chromedp.ContextOption{
-			chromedp.WithLogf(log.Printf),
-			chromedp.WithDebugf(log.Printf),
-			chromedp.WithErrorf(log.Printf),
-		}
-	}
-
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.DisableGPU,
-		chromedp.ExecPath(chrome),
-		chromedp.UserDataDir(path.Join(home, ".faceloader", "userdata")),
-	)
-	allocatorCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
-	browserCtx, _ := chromedp.NewContext(allocatorCtx, contextOpts...)
-
-	if debug {
-		chromedp.ListenTarget(browserCtx, func(ev interface{}) {
-			switch ev := ev.(type) {
-			case *runtime.EventConsoleAPICalled:
-				log.Printf("* console.%s call:\n", ev.Type)
-				for _, arg := range ev.Args {
-					log.Printf("%s - %s\n", arg.Type, arg.Value)
-				}
-			case *runtime.EventExceptionThrown:
-				s := ev.ExceptionDetails.Error()
-				log.Printf("* %s\n", s)
-			}
-		})
-	}
-
-	chromedp.Run(browserCtx)
-
-	return allocatorCtx, browserCtx
-}
-
-func maybeLogin(ctx context.Context, username string, password string) error {
-	timeoutContext, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	selName := `//input[@id="email"]`
-	selPass := `//input[@id="pass"]`
-	var acceptRes interface{}
-	err := chromedp.Run(timeoutContext, chromedp.Tasks{
-		network.Enable(),
-		chromedp.Navigate(`https://www.facebook.com`),
-		chromedp.WaitVisible(selPass),
-		chromedp.EvaluateAsDevTools(acceptCookiesJS, &acceptRes, awaitPromise),
-		chromedp.SendKeys(selName, username),
-		chromedp.SendKeys(selPass, password),
-		chromedp.Submit(selPass),
-		//chromedp.WaitVisible(`//a[@title="Profile"]`),
-	})
-	if err == nil {
-		log.Println("Performed login")
-	}
-	return err
-}
-
-//go:embed js/more.js
-var moreJS string
-
-//go:embed js/acceptCookies.js
-var acceptCookiesJS string
-
-func awaitPromise(params *runtime.EvaluateParams) *runtime.EvaluateParams {
-	return params.WithAwaitPromise(true)
-}
-
-// find links to Facebook events from a url, using Chrome so that we do it as a logged-in Facebook user
-func getFacebookEventLinks(ctx context.Context, pageUrl string, debug bool) []string {
-	var links []string
-
-	var nodes []*cdp.Node
-	waitSelector := "#facebook a"
-	linksSelector := "#facebook a"
-	var res interface{}
-	var buf []byte
-	err := chromedp.Run(ctx, chromedp.Tasks{
-		chromedp.Navigate(pageUrl),
-		chromedp.WaitReady(waitSelector),
-		chromedp.EvaluateAsDevTools(moreJS, &res, awaitPromise),
-		chromedp.FullScreenshot(&buf, 90),
-		chromedp.Nodes(linksSelector, &nodes),
-	})
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if debug {
-		ioutil.WriteFile("fullScreenshot.png", buf, 0o600)
-		log.Println("Saved screenshot of final event listing page to fullScreenshot.png")
-	}
-
-	for _, node := range nodes {
-		href := node.AttributeValue("href")
-		url, err := url.Parse(href)
-		if err != nil {
-			log.Fatal(err)
-		}
-		match, _ := regexp.MatchString("/events/\\d+/", url.Path)
-		if match {
-			links = append(links, url.Path)
-		}
-	}
-	return removeDuplicateStr(links)
-}
-
 func main() {
-	// read config from config.yaml.  We can improve this and make a nice ui to edit in the future
-	c := viper.New()
-	c.SetConfigName(".faceloader")
-	c.AddConfigPath(".")
-	c.AddConfigPath("$HOME")
-	c.AutomaticEnv()
-	_ = c.ReadInConfig()
+	a := app.NewWithID("studio.gfsc.faceloader")
+	w := a.NewWindow("FaceLoader")
 
-	c.SetDefault("ChromePath", "/opt/google/chrome/chrome")
-	c.SetDefault("Debug", false)
+	txtFacebookPages := widget.NewMultiLineEntry()
+	txtFacebookPages.SetText(a.Preferences().String("FacebookPages"))
+	txtChromePath := widget.NewEntry()
+	txtChromePath.SetText(a.Preferences().String("ChromePath"))
+	txtUsername := widget.NewEntry()
+	txtUsername.SetText(a.Preferences().String("Username"))
+	txtPassword := widget.NewPasswordEntry()
+	txtPassword.SetText(a.Preferences().String("Password"))
+	boolDebug := widget.NewCheck("", func(value bool) { log.Println("Debug set to ", value) })
 
-	// build a new calendar
-	cal := ics.NewCalendar()
-	cal.SetMethod(ics.MethodRequest)
+	txtOutput := widget.NewMultiLineEntry()
 
-	_, browserContext := browserContext(c.GetString("ChromePath"), c.GetBool("Debug"))
-	err := maybeLogin(browserContext, c.GetString("Username"), c.GetString("Password"))
-	if err != nil {
-		log.Println(err)
-	}
+	form := &widget.Form{OnSubmit: func() {
+		txtOutput.SetText("Loading...")
+		a.Preferences().SetString("FacebookPages", txtFacebookPages.Text)
+		a.Preferences().SetString("ChromePath", txtChromePath.Text)
+		a.Preferences().SetString("Username", txtUsername.Text)
+		a.Preferences().SetString("Password", txtPassword.Text)
 
-	log.Println(c.GetString("FacebookPage"))
+		_, ctx := faceloader.BrowserContext(txtChromePath.Text, boolDebug.Checked)
 
-	// add events to the calendar
-	events := getFacebookEventLinks(browserContext, c.GetString("FacebookPage"), c.GetBool("Debug"))
-	for _, event := range events {
-		u, _ := url.Parse(event)
-		u.Scheme = "https"
-		u.Host = "www.facebook.com"
-		calEvent, err := fb2ical(u.String())
+		err := faceloader.MaybeLogin(ctx, txtUsername.Text, txtPassword.Text)
 		if err != nil {
-			log.Printf("%s %s\n", u.String(), err)
-		} else {
-			cal.Components = append(cal.Components, &calEvent)
+			log.Println(err)
 		}
-	}
 
-	// @TODO write to a file instead of stdout
-	fmt.Print(cal.Serialize())
+		cal := ics.NewCalendar()
+		cal.SetMethod(ics.MethodRequest)
 
-	// Manually cancel the context to gracefully close the browser
-	err = chromedp.Cancel(browserContext)
-	if err != nil {
-		log.Fatalf("error canceling browserContext: %s\n", err)
-	}
+		pages := strings.Split(txtFacebookPages.Text, "\n")
+		for _, page := range pages {
+			events := faceloader.GetFacebookEventLinks(ctx, page, boolDebug.Checked)
+			for _, event := range events {
+				u, _ := url.Parse(event)
+				u.Scheme = "https"
+				u.Host = "www.facebook.com"
+				calEvent, err := faceloader.Fb2ical(u.String())
+				if err != nil {
+					log.Printf("%s %s\n", u.String(), err)
+				} else {
+					cal.Components = append(cal.Components, &calEvent)
+					txtOutput.SetText(fmt.Sprintf("Loading... (%v)", len(cal.Events())))
+				}
+			}
+		}
+		txtOutput.SetText(cal.Serialize())
+	}}
+
+	form.Append("Facebook Pages:", txtFacebookPages)
+	form.Append("Chrome path:", txtChromePath)
+	form.Append("Username:", txtUsername)
+	form.Append("Password:", txtPassword)
+	form.Append("Debug", boolDebug)
+
+	grid := container.New(layout.NewGridLayout(1), form, txtOutput)
+
+	w.SetContent(grid)
+
+	w.Resize(fyne.NewSize(600, 600))
+	w.CenterOnScreen()
+	w.ShowAndRun()
 }
