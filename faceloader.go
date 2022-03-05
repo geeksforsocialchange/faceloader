@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -30,8 +31,10 @@ func main() {
 
 	txtOutput := widget.NewMultiLineEntry()
 
+	lblStatus := widget.NewLabel("")
+
 	form := &widget.Form{OnSubmit: func() {
-		txtOutput.SetText("Loading...")
+		lblStatus.SetText("Loading...")
 		a.Preferences().SetString("FacebookPages", txtFacebookPages.Text)
 		a.Preferences().SetString("ChromePath", txtChromePath.Text)
 		a.Preferences().SetString("Username", txtUsername.Text)
@@ -59,11 +62,21 @@ func main() {
 					log.Printf("%s %s\n", u.String(), err)
 				} else {
 					cal.Components = append(cal.Components, &calEvent)
-					txtOutput.SetText(fmt.Sprintf("Loading... (%v)", len(cal.Events())))
+					lblStatus.SetText(fmt.Sprintf("Loading... (%v events)", len(cal.Events())))
 				}
 			}
 		}
 		txtOutput.SetText(cal.Serialize())
+
+		futureEvents := 0
+		for _, event := range cal.Events() {
+			start, _ := event.GetStartAt()
+			if start.After(time.Now()) {
+				futureEvents += 1
+			}
+		}
+		lblStatus.SetText(fmt.Sprintf("Loaded %v events, of which %v are in the future", len(cal.Events()), futureEvents))
+
 	}}
 
 	form.Append("Facebook Pages:", txtFacebookPages)
@@ -72,7 +85,7 @@ func main() {
 	form.Append("Password:", txtPassword)
 	form.Append("Debug", boolDebug)
 
-	grid := container.New(layout.NewGridLayout(1), form, txtOutput)
+	grid := container.New(layout.NewVBoxLayout(), form, txtOutput, lblStatus)
 
 	w.SetContent(grid)
 
