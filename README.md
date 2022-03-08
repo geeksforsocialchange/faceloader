@@ -36,7 +36,9 @@ go run .
 
 ## Usage
 
-1. Add all the Facebook event pages that you want to load events from
+![screenshot.png](screenshot.png)
+
+1. Add all the Facebook event pages that you want to load events from, making sure you include the full URL to the events page (see the screenshot)
 2. Provide the path to Chrome (eg /usr/bin/chrome)
 3. Provide your Facebook username and password (it runs without, but won't find as many events)
 4. Press "Submit" and be patient
