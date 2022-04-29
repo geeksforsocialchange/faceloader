@@ -6,8 +6,8 @@ require (
 	fyne.io/fyne/v2 v2.1.4
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/arran4/golang-ical v0.0.0-20210825232153-efac1f4cb8ac
-	github.com/chromedp/cdproto v0.0.0-20220321060548-7bc2623472b3
-	github.com/chromedp/chromedp v0.8.0
+	github.com/chromedp/cdproto v0.0.0-20220428002153-285dfb42699c
+	github.com/chromedp/chromedp v0.8.1
 	github.com/daetal-us/getld v1.0.1
 	github.com/spf13/viper v1.11.0
 )
@@ -45,7 +45,7 @@ require (
 	github.com/yuin/goldmark v1.3.8 // indirect
 	golang.org/x/image v0.0.0-20200430140353-33d19683fad8 // indirect
 	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
+	golang.org/x/sys v0.0.0-20220422013727-9388b58f7150 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
