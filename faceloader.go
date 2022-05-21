@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	ics "github.com/arran4/golang-ical"
 	faceloader "github.com/geeksforsocialchange/faceloader/parser"
+	"github.com/go-co-op/gocron"
 	"log"
 	"os"
 	"path"
@@ -17,9 +18,59 @@ import (
 	"time"
 )
 
+func update(a fyne.App) ics.Calendar {
+	cal := ics.NewCalendar()
+	cal.SetMethod(ics.MethodRequest)
+
+	directory := a.Preferences().String("Storage")
+
+	pages := strings.Split(a.Preferences().String("FacebookPages"), "\n")
+	for _, page := range pages {
+		pageCal := ics.NewCalendar()
+		pageCal.SetMethod(ics.MethodRequest)
+
+		eventLinks, err := faceloader.GetFacebookEventLinks(page)
+		if err != nil {
+			log.Println(err)
+		}
+		for _, eventLink := range eventLinks {
+			i, err := faceloader.InterfaceFromMbasic(eventLink)
+			if err != nil {
+				log.Println(err)
+			}
+			event, err := faceloader.InterfaceToIcal(i)
+			if err != nil {
+				log.Println(err)
+			}
+			cal.Components = append(cal.Components, &event)
+			pageCal.Components = append(pageCal.Components, &event)
+			if directory != "" {
+				f, err := os.OpenFile(path.Join(directory, fmt.Sprintf("%v.ics", page)), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+				if err != nil {
+					log.Println(err)
+				}
+				err = cal.SerializeTo(f)
+				if err != nil {
+					log.Println(err)
+				}
+				f.Sync()
+				f.Close()
+			}
+		}
+	}
+	return *cal
+}
+
 func main() {
 	a := app.NewWithID("studio.gfsc.faceloader")
 	w := a.NewWindow("FaceLoader")
+
+	s := gocron.NewScheduler(time.UTC)
+	s.Every(1).Hours().Do(func() {
+		update(a)
+	})
+
+	s.StartAsync()
 
 	txtFacebookPages := widget.NewMultiLineEntry()
 	txtFacebookPages.SetText(a.Preferences().String("FacebookPages"))
@@ -31,8 +82,6 @@ func main() {
 		}, w)
 	})
 
-	//ShowFolderOpen
-
 	txtOutput := widget.NewMultiLineEntry()
 
 	lblStatus := widget.NewLabel("")
@@ -41,48 +90,8 @@ func main() {
 		lblStatus.SetText("Loading...")
 		a.Preferences().SetString("FacebookPages", txtFacebookPages.Text)
 
-		cal := ics.NewCalendar()
-		cal.SetMethod(ics.MethodRequest)
+		cal := update(a)
 
-		directory := a.Preferences().String("Storage")
-
-		pages := strings.Split(txtFacebookPages.Text, "\n")
-		for _, page := range pages {
-			pageCal := ics.NewCalendar()
-			pageCal.SetMethod(ics.MethodRequest)
-
-			eventLinks, err := faceloader.GetFacebookEventLinks(page)
-			if err != nil {
-				log.Println(err)
-			}
-			for _, eventLink := range eventLinks {
-				i, err := faceloader.InterfaceFromMbasic(eventLink)
-				if err != nil {
-					log.Println(err)
-				}
-				event, err := faceloader.InterfaceToIcal(i)
-				if err != nil {
-					log.Println(err)
-				}
-				cal.Components = append(cal.Components, &event)
-				pageCal.Components = append(pageCal.Components, &event)
-				if directory != "" {
-					f, err := os.OpenFile(path.Join(directory, fmt.Sprintf("%v.ics", page)), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
-					if err != nil {
-						log.Println(err)
-					}
-					err = cal.SerializeTo(f)
-					if err != nil {
-						log.Println(err)
-					}
-					f.Sync()
-					f.Close()
-				}
-
-				lblStatus.SetText(fmt.Sprintf("Loading... (%v events)", len(cal.Events())))
-			}
-
-		}
 		txtOutput.SetText(cal.Serialize())
 
 		futureEvents := 0

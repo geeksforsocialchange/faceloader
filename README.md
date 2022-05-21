@@ -42,7 +42,9 @@ go run .
 2. Set a directory to write the ics calendar file to
 3. Press "Submit" and be patient
 
-The ical file will be shown in the output and written to a file
+The settings will be saved, the ical file will be shown in the output, and the events will be written to files
+
+Leave the application running in the background and it will continue to update the ics event files every hour (you must submit the form if you make any changes to the list of facebook pages)
 
 ## Development
 
