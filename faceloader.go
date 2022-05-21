@@ -44,8 +44,12 @@ func main() {
 		cal := ics.NewCalendar()
 		cal.SetMethod(ics.MethodRequest)
 
+		directory := a.Preferences().String("Storage")
+
 		pages := strings.Split(txtFacebookPages.Text, "\n")
 		for _, page := range pages {
+			pageCal := ics.NewCalendar()
+			pageCal.SetMethod(ics.MethodRequest)
 
 			eventLinks, err := faceloader.GetFacebookEventLinks(page)
 			if err != nil {
@@ -61,24 +65,25 @@ func main() {
 					log.Println(err)
 				}
 				cal.Components = append(cal.Components, &event)
+				pageCal.Components = append(pageCal.Components, &event)
+				if directory != "" {
+					f, err := os.OpenFile(path.Join(directory, fmt.Sprintf("%v.ics", page)), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+					if err != nil {
+						log.Println(err)
+					}
+					err = cal.SerializeTo(f)
+					if err != nil {
+						log.Println(err)
+					}
+					f.Sync()
+					f.Close()
+				}
+
 				lblStatus.SetText(fmt.Sprintf("Loading... (%v events)", len(cal.Events())))
 			}
 
 		}
 		txtOutput.SetText(cal.Serialize())
-		directory := a.Preferences().String("Storage")
-		if directory != "" {
-			f, err := os.OpenFile(path.Join(directory, "events.ics"), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
-			if err != nil {
-				log.Println(err)
-			}
-			err = cal.SerializeTo(f)
-			if err != nil {
-				log.Println(err)
-			}
-			f.Sync()
-			f.Close()
-		}
 
 		futureEvents := 0
 		for _, event := range cal.Events() {
