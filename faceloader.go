@@ -5,11 +5,14 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	ics "github.com/arran4/golang-ical"
 	faceloader "github.com/geeksforsocialchange/faceloader/parser"
 	"log"
+	"os"
+	"path"
 	"strings"
 	"time"
 )
@@ -20,6 +23,15 @@ func main() {
 
 	txtFacebookPages := widget.NewMultiLineEntry()
 	txtFacebookPages.SetText(a.Preferences().String("FacebookPages"))
+
+	btnSetStoragePath := widget.NewButton("Set storage", func() {
+		dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
+			a.Preferences().SetString("Storage", uri.Path())
+			log.Println(uri.Path())
+		}, w)
+	})
+
+	//ShowFolderOpen
 
 	txtOutput := widget.NewMultiLineEntry()
 
@@ -54,6 +66,19 @@ func main() {
 
 		}
 		txtOutput.SetText(cal.Serialize())
+		directory := a.Preferences().String("Storage")
+		if directory != "" {
+			f, err := os.OpenFile(path.Join(directory, "events.ics"), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+			if err != nil {
+				log.Println(err)
+			}
+			err = cal.SerializeTo(f)
+			if err != nil {
+				log.Println(err)
+			}
+			f.Sync()
+			f.Close()
+		}
 
 		futureEvents := 0
 		for _, event := range cal.Events() {
@@ -67,6 +92,7 @@ func main() {
 	}}
 
 	form.Append("Facebook Pages:", txtFacebookPages)
+	form.Append("", btnSetStoragePath)
 
 	grid := container.New(layout.NewVBoxLayout(), form, txtOutput, lblStatus)
 
