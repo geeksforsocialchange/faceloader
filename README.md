@@ -38,12 +38,11 @@ go run .
 
 ![screenshot.png](screenshot.png)
 
-1. Add all the Facebook event pages that you want to load events from, making sure you include the full URL to the events page (see the screenshot)
-2. Provide the path to Chrome (eg /usr/bin/chrome)
-3. Provide your Facebook username and password (it runs without, but won't find as many events)
-4. Press "Submit" and be patient
+1. Add all the Facebook event pages that you want to load events from, making sure you give just the page name from the url, not the full url (see the screenshot)
+2. Set a directory to write the ics calendar file to
+3. Press "Submit" and be patient
 
-The ical file will be shown in the output
+The ical file will be shown in the output and written to a file
 
 ## Development
 
