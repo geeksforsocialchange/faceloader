@@ -1,24 +1,17 @@
 package faceloader
 
 import (
-	"context"
 	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/araddon/dateparse"
 	ics "github.com/arran4/golang-ical"
-	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/network"
-	"github.com/chromedp/cdproto/runtime"
-	"github.com/chromedp/chromedp"
-	"github.com/daetal-us/getld/extract"
-	"io/ioutil"
-	"log"
+	"net/http"
 	"net/url"
-	"os"
-	"path"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -47,18 +40,49 @@ type EventScheme struct {
 	Url        string        `json:"url"`
 }
 
-// take a Facebook event url and return an ICS event
-// `extract.FromURL()` does the fetching, but we may want to use Chrome in the future
-func Fb2ical(url string) (ics.VEvent, error) {
-	results, _ := extract.FromURL(url)
-	encoded, _ := json.Marshal(results)
-
-	var events []EventScheme
-	json.Unmarshal(encoded, &events)
-	if len(events) == 0 {
-		return ics.VEvent{}, errors.New("no events found")
+func InterfaceFromMbasic(eventUrl string) (map[string]interface{}, error) {
+	var result []map[string]interface{}
+	res, err := http.Get(eventUrl)
+	if err != nil {
+		return nil, nil
 	}
-	var event = events[0]
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("status code error: %d %s", res.StatusCode, res.Status))
+	}
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	selector := `script[type="application/ld+json"]`
+	scripts := doc.Find(selector)
+	scripts.Each(func(i int, s *goquery.Selection) {
+		var decoded map[string]interface{}
+		text := s.Text()
+		text = strings.Replace(text, "//<![CDATA[", "", -1)
+		text = strings.Replace(text, "//]]", "", -1)
+		text = strings.Replace(text, ">", "", -1)
+		err = json.Unmarshal([]byte(text), &decoded)
+		if err != nil {
+			return
+		}
+		if err == nil {
+			result = append(result, decoded)
+		}
+	})
+	return result[0], nil
+}
+
+func InterfaceToIcal(i map[string]interface{}) (ics.VEvent, error) {
+	encoded, err := json.Marshal(i)
+	if err != nil {
+		return ics.VEvent{}, err
+	}
+	var event EventScheme
+	err = json.Unmarshal(encoded, &event)
+	if err != nil {
+		return ics.VEvent{}, err
+	}
 
 	var icsEvent ics.VEvent
 
@@ -91,7 +115,7 @@ func Fb2ical(url string) (ics.VEvent, error) {
 // RemoveDuplicateStr de-duplicate a slice of strings
 func RemoveDuplicateStr(strSlice []string) []string {
 	allKeys := make(map[string]bool)
-	list := []string{}
+	var list []string
 	for _, item := range strSlice {
 		if _, value := allKeys[item]; !value {
 			allKeys[item] = true
@@ -101,116 +125,32 @@ func RemoveDuplicateStr(strSlice []string) []string {
 	return list
 }
 
-func BrowserContext(chrome string, debug bool) (context.Context, context.Context) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		log.Fatalf("Couldn't get home directory: %s", err)
-	}
-
-	var contextOpts []chromedp.ContextOption
-	if debug {
-		contextOpts = []chromedp.ContextOption{
-			chromedp.WithLogf(log.Printf),
-			chromedp.WithDebugf(log.Printf),
-			chromedp.WithErrorf(log.Printf),
-		}
-	}
-
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.DisableGPU,
-		chromedp.ExecPath(chrome),
-		chromedp.UserDataDir(path.Join(home, ".faceloader", "userdata")),
-	)
-	allocatorCtx, _ := chromedp.NewExecAllocator(context.Background(), opts...)
-	browserCtx, _ := chromedp.NewContext(allocatorCtx, contextOpts...)
-
-	if debug {
-		chromedp.ListenTarget(browserCtx, func(ev interface{}) {
-			switch ev := ev.(type) {
-			case *runtime.EventConsoleAPICalled:
-				log.Printf("* console.%s call:\n", ev.Type)
-				for _, arg := range ev.Args {
-					log.Printf("%s - %s\n", arg.Type, arg.Value)
-				}
-			case *runtime.EventExceptionThrown:
-				s := ev.ExceptionDetails.Error()
-				log.Printf("* %s\n", s)
-			}
-		})
-	}
-
-	chromedp.Run(browserCtx)
-
-	return allocatorCtx, browserCtx
-}
-
-func MaybeLogin(ctx context.Context, username string, password string) error {
-	timeoutContext, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	selName := `//input[@id="email"]`
-	selPass := `//input[@id="pass"]`
-	var acceptRes interface{}
-	err := chromedp.Run(timeoutContext, chromedp.Tasks{
-		network.Enable(),
-		chromedp.Navigate(`https://www.facebook.com`),
-		chromedp.WaitVisible(selPass),
-		chromedp.EvaluateAsDevTools(acceptCookiesJS, &acceptRes, awaitPromise),
-		chromedp.SendKeys(selName, username),
-		chromedp.SendKeys(selPass, password),
-		chromedp.Submit(selPass),
-		//chromedp.WaitVisible(`//a[@title="Profile"]`),
-	})
-	if err == nil {
-		log.Println("Performed login")
-	}
-	return err
-}
-
-//go:embed js/more.js
-var moreJS string
-
-//go:embed js/acceptCookies.js
-var acceptCookiesJS string
-
-func awaitPromise(params *runtime.EvaluateParams) *runtime.EvaluateParams {
-	return params.WithAwaitPromise(true)
-}
-
-// GetFacebookEventLinks find links to Facebook events from a url, using Chrome so that we do it as a logged-in Facebook user
-func GetFacebookEventLinks(ctx context.Context, pageUrl string, debug bool) []string {
+// GetFacebookEventLinks find links to Facebook events from a Facebook page name
+func GetFacebookEventLinks(pageName string) ([]string, error) {
 	var links []string
-
-	var nodes []*cdp.Node
-	waitSelector := "#facebook a"
-	linksSelector := "#facebook a"
-	var res interface{}
-	var buf []byte
-	err := chromedp.Run(ctx, chromedp.Tasks{
-		chromedp.Navigate(pageUrl),
-		chromedp.WaitReady(waitSelector),
-		chromedp.EvaluateAsDevTools(moreJS, &res, awaitPromise),
-		chromedp.FullScreenshot(&buf, 90),
-		chromedp.Nodes(linksSelector, &nodes),
-	})
+	res, err := http.Get(fmt.Sprintf("https://mbasic.facebook.com/%v?v=events", pageName))
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
-	if debug {
-		ioutil.WriteFile("fullScreenshot.png", buf, 0o600)
-		log.Println("Saved screenshot of final event listing page to fullScreenshot.png")
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("status code error: %d %s", res.StatusCode, res.Status))
 	}
-
-	for _, node := range nodes {
-		href := node.AttributeValue("href")
-		url, err := url.Parse(href)
-		if err != nil {
-			log.Fatal(err)
-		}
-		match, _ := regexp.MatchString("/events/\\d+/", url.Path)
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+		href, _ := s.Attr("href")
+		link, _ := url.Parse(href)
+		match, _ := regexp.MatchString("/events/\\d+", link.Path)
 		if match {
-			links = append(links, url.Path)
+			link.Scheme = "https"
+			link.Host = "mbasic.facebook.com"
+			link.RawQuery = ""
+			links = append(links, link.String())
 		}
-	}
-	return RemoveDuplicateStr(links)
+	})
+
+	return RemoveDuplicateStr(links), nil
 }

@@ -4,17 +4,16 @@ go 1.17
 
 require (
 	fyne.io/fyne/v2 v2.1.4
+	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/arran4/golang-ical v0.0.0-20210825232153-efac1f4cb8ac
-	github.com/chromedp/cdproto v0.0.0-20220428002153-285dfb42699c
 	github.com/chromedp/chromedp v0.8.1
-	github.com/daetal-us/getld v1.0.1
 	github.com/spf13/viper v1.11.0
 )
 
 require (
-	github.com/PuerkitoBio/goquery v1.8.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
+	github.com/chromedp/cdproto v0.0.0-20220428002153-285dfb42699c // indirect
 	github.com/chromedp/sysutil v1.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fredbi/uri v0.0.0-20181227131451-3dcfdacbaaf3 // indirect

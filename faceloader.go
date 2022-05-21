@@ -8,9 +8,8 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	ics "github.com/arran4/golang-ical"
-	"github.com/geeksforsocialchange/faceloader/parser"
+	faceloader "github.com/geeksforsocialchange/faceloader/parser"
 	"log"
-	"net/url"
 	"strings"
 	"time"
 )
@@ -21,13 +20,6 @@ func main() {
 
 	txtFacebookPages := widget.NewMultiLineEntry()
 	txtFacebookPages.SetText(a.Preferences().String("FacebookPages"))
-	txtChromePath := widget.NewEntry()
-	txtChromePath.SetText(a.Preferences().String("ChromePath"))
-	txtUsername := widget.NewEntry()
-	txtUsername.SetText(a.Preferences().String("Username"))
-	txtPassword := widget.NewPasswordEntry()
-	txtPassword.SetText(a.Preferences().String("Password"))
-	boolDebug := widget.NewCheck("", func(value bool) { log.Println("Debug set to ", value) })
 
 	txtOutput := widget.NewMultiLineEntry()
 
@@ -36,35 +28,30 @@ func main() {
 	form := &widget.Form{OnSubmit: func() {
 		lblStatus.SetText("Loading...")
 		a.Preferences().SetString("FacebookPages", txtFacebookPages.Text)
-		a.Preferences().SetString("ChromePath", txtChromePath.Text)
-		a.Preferences().SetString("Username", txtUsername.Text)
-		a.Preferences().SetString("Password", txtPassword.Text)
-
-		_, ctx := faceloader.BrowserContext(txtChromePath.Text, boolDebug.Checked)
-
-		err := faceloader.MaybeLogin(ctx, txtUsername.Text, txtPassword.Text)
-		if err != nil {
-			log.Println(err)
-		}
 
 		cal := ics.NewCalendar()
 		cal.SetMethod(ics.MethodRequest)
 
 		pages := strings.Split(txtFacebookPages.Text, "\n")
 		for _, page := range pages {
-			events := faceloader.GetFacebookEventLinks(ctx, page, boolDebug.Checked)
-			for _, event := range events {
-				u, _ := url.Parse(event)
-				u.Scheme = "https"
-				u.Host = "www.facebook.com"
-				calEvent, err := faceloader.Fb2ical(u.String())
-				if err != nil {
-					log.Printf("%s %s\n", u.String(), err)
-				} else {
-					cal.Components = append(cal.Components, &calEvent)
-					lblStatus.SetText(fmt.Sprintf("Loading... (%v events)", len(cal.Events())))
-				}
+
+			eventLinks, err := faceloader.GetFacebookEventLinks(page)
+			if err != nil {
+				log.Println(err)
 			}
+			for _, eventLink := range eventLinks {
+				i, err := faceloader.InterfaceFromMbasic(eventLink)
+				if err != nil {
+					log.Println(err)
+				}
+				event, err := faceloader.InterfaceToIcal(i)
+				if err != nil {
+					log.Println(err)
+				}
+				cal.Components = append(cal.Components, &event)
+				lblStatus.SetText(fmt.Sprintf("Loading... (%v events)", len(cal.Events())))
+			}
+
 		}
 		txtOutput.SetText(cal.Serialize())
 
@@ -80,10 +67,6 @@ func main() {
 	}}
 
 	form.Append("Facebook Pages:", txtFacebookPages)
-	form.Append("Chrome path:", txtChromePath)
-	form.Append("Username:", txtUsername)
-	form.Append("Password:", txtPassword)
-	form.Append("Debug", boolDebug)
 
 	grid := container.New(layout.NewVBoxLayout(), form, txtOutput, lblStatus)
 
