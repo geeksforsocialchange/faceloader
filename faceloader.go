@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+var cal ics.Calendar
+
 func update(a fyne.App) ics.Calendar {
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodRequest)
@@ -82,7 +84,22 @@ func main() {
 		}, w)
 	})
 
-	txtOutput := widget.NewMultiLineEntry()
+	events := []string{}
+	list := widget.NewList(
+		func() int {
+			return len(events)
+		},
+		func() fyne.CanvasObject {
+			return widget.NewLabel("template")
+		},
+		func(id widget.ListItemID, object fyne.CanvasObject) {
+			object.(*widget.Label).SetText(events[id])
+		})
+
+	list.OnSelected = func(id widget.ListItemID) {
+		event := cal.Events()[id]
+		dialog.ShowInformation(event.GetProperty(ics.ComponentPropertySummary).Value, event.Serialize(), w)
+	}
 
 	lblStatus := widget.NewLabel("")
 
@@ -90,9 +107,11 @@ func main() {
 		lblStatus.SetText("Loading...")
 		a.Preferences().SetString("FacebookPages", txtFacebookPages.Text)
 
-		cal := update(a)
+		cal = update(a)
 
-		txtOutput.SetText(cal.Serialize())
+		for _, event := range cal.Events() {
+			events = append(events, event.GetProperty(ics.ComponentPropertySummary).Value)
+		}
 
 		futureEvents := 0
 		for _, event := range cal.Events() {
@@ -108,7 +127,7 @@ func main() {
 	form.Append("Facebook Pages:", txtFacebookPages)
 	form.Append("", btnSetStoragePath)
 
-	grid := container.New(layout.NewVBoxLayout(), form, txtOutput, lblStatus)
+	grid := container.New(layout.NewBorderLayout(form, lblStatus, nil, nil), form, lblStatus, list)
 
 	w.SetContent(grid)
 
