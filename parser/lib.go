@@ -70,7 +70,11 @@ func InterfaceFromMbasic(eventUrl string) (map[string]interface{}, error) {
 			result = append(result, decoded)
 		}
 	})
-	return result[0], nil
+	if len(result) > 0 {
+		return result[0], nil
+	} else {
+		return nil, errors.New(fmt.Sprintf("no ld+json events found on %v", eventUrl))
+	}
 }
 
 func InterfaceToIcal(i map[string]interface{}) (ics.VEvent, error) {
