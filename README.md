@@ -1,16 +1,12 @@
 # Faceloader
 
-
 [![Release](https://img.shields.io/github/release-pre/geeksforsocialchange/faceloader.svg?logo=github&style=flat&v=1)](https://github.com/geeksforsocialchange/faceloader/releases)
 [![Build Status](https://img.shields.io/github/workflow/status/geeksforsocialchange/faceloader/run-go-tests?logo=github&v=1)](https://github.com/geeksforsocialchange/faceloader/actions)
-[![Mergify Status](https://img.shields.io/endpoint.svg?url=https://gh.mergify.io/badges/geeksforsocialchange/faceloader&style=flat&v=1)](https://mergify.io)
 [![Go](https://img.shields.io/github/go-mod/go-version/geeksforsocialchange/faceloader?v=1)](https://golang.org/)
-[![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/geeksforsocialchange/faceloader)
 
+A simple gui application to create ical files with events from Facebook pages.
 
-A single binary to generate an ical file with multiple events linked from a Facebook page.
-
-Please note this is a very early attempt at a proof of concept and not suitable for any kind of use yet really.
+This is still a very early version, it may include bugs. Please report any issues you come across
 
 ## Why did we make FaceLoader?
 
@@ -20,13 +16,21 @@ This is a pain in the butt for event promoters and community group organisers. A
 
 ### Our solution
 
-While Facebook constantly shift the goalposts to stop easy interoperability, there is one thing they can't block: accessing the site as a logged in user to view your own events.
+While Facebook constantly shift the goalposts to stop easy interoperability, there is one thing they haven't yet blocked: using the accessible version of their website to view your own events.
 
-FaceLoader is a desktop app that takes the name of one or more Facebook pages and then pretends to be you by visiting each event link and downloading the data to your local computer. This creates a local copy on your computer you can cut and paste from into other event platforms, as well as an iCal feed you can sync with your Google or Outlook Calendar.
+FaceLoader is a desktop app that takes the name of one or more Facebook pages and then pretends to be you by visiting each event link and downloading the data to your local computer. This creates local files on your computer you can upload into other event platforms, as well as importing the files into your Google or Outlook Calendar.
 
-FaceLoader was designed primarily to be used with the PlaceCal event aggregation platform, which requires a public iCal feed or API to operate. We developed FaceLoader out of frustration with Facebook's insistance on making interoperability a total pain in the butt.
+FaceLoader was designed primarily to be used with the PlaceCal event aggregation platform, which requires a public iCal feed or API to operate. We developed FaceLoader out of frustration with Facebook's insistence on making interoperability a total pain in the butt.
 
 ## Installation
+
+Most users will want to download the [latest release](https://github.com/geeksforsocialchange/faceloader/releases/latest). We provide ready-built versions for:
+
+* Apple Mac (faceloader-mac.zip)
+* Linux (faceloader.tar.xz)
+* Windows (faceloader.exe)
+
+Developers and people who want the absolutely latest version can get the sourcecode from git and run it that way:
 
 ```
 git clone https://github.com/geeksforsocialchange/faceloader
@@ -42,9 +46,15 @@ go run .
 2. Set a directory to write the ics calendar file to
 3. Press "Submit" and be patient
 
-The settings will be saved, the ical file will be shown in the output, and the events will be written to files
+The settings will be saved, a list of discovered events will be shown, and the events will be written to files
 
-Leave the application running in the background and it will continue to update the ics event files every hour (you must submit the form if you make any changes to the list of facebook pages)
+If you leave the application running in the background, it will continue to update the ics event files every hour (you must submit the form if you make any changes to the list of facebook pages)
+
+### Using the ics files
+
+The ics files that are generated include the next five events listed on each given Facebook page. You can open these in your favourite calendar application (Outlook, Google Calendar, etc.)
+
+If you want to share them more publicly, you can do so using [Dropbox](https://help.dropbox.com/files-folders/share/view-only-access) or [Google Drive](https://www.google.com/drive/download/)
 
 ## Development
 
