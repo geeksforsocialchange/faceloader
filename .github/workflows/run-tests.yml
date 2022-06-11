@@ -12,19 +12,7 @@ on:
   #  - cron: '1 4 * * *'
 
 jobs:
-  asknancy:
-    name: Ask Nancy (check dependencies)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Write go list
-        run: go list -json -m all > go.list
-      - name: Ask Nancy
-        uses: sonatype-nexus-community/nancy-github-action@v1.0.2
-        # continue-on-error: true
   test:
-    needs: [asknancy]
     strategy:
       matrix:
         go-version: [1.17.x]
