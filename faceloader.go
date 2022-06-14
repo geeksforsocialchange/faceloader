@@ -21,12 +21,15 @@ import (
 var cal ics.Calendar
 
 func update(a fyne.App) ics.Calendar {
+	rawPages := a.Preferences().String("FacebookPages")
+	log.Println(fmt.Sprintf("Loading events from %q", rawPages))
+
 	cal := ics.NewCalendar()
 	cal.SetMethod(ics.MethodRequest)
 
 	directory := a.Preferences().String("Storage")
 
-	pages := strings.Split(a.Preferences().String("FacebookPages"), "\n")
+	pages := strings.Split(rawPages, "\n")
 	for _, page := range pages {
 		pageCal := ics.NewCalendar()
 		pageCal.SetMethod(ics.MethodRequest)
@@ -108,6 +111,9 @@ func main() {
 
 	form := &widget.Form{OnSubmit: func() {
 		lblStatus.SetText("Loading...")
+		if strings.Contains(txtFacebookPages.Text, "/") {
+			dialog.ShowInformation("Invalid page provided", "Did you include a full URL instead of a page name?", w)
+		}
 		a.Preferences().SetString("FacebookPages", txtFacebookPages.Text)
 
 		cal = update(a)
