@@ -77,13 +77,13 @@ func main() {
 	txtFacebookPages := widget.NewMultiLineEntry()
 	txtFacebookPages.SetText(a.Preferences().String("FacebookPages"))
 
-	btnSetStoragePath := widget.NewButton("Set storage", func() {
+	btnSetStoragePath := widget.NewButton("Set storage directory", func() {
 		dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
 			if uri == nil {
 				return
 			}
 			a.Preferences().SetString("Storage", uri.Path())
-			log.Println(uri.Path())
+			log.Println(fmt.Sprintf("Will save ics files to %q", uri.Path()))
 		}, w)
 	})
 
