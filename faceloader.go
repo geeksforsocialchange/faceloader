@@ -79,6 +79,9 @@ func main() {
 
 	btnSetStoragePath := widget.NewButton("Set storage", func() {
 		dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
+			if uri == nil {
+				return
+			}
 			a.Preferences().SetString("Storage", uri.Path())
 			log.Println(uri.Path())
 		}, w)
