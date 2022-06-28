@@ -69,6 +69,7 @@ func update(a fyne.App) ics.Calendar {
 
 func main() {
 	a := app.NewWithID("studio.gfsc.faceloader")
+	log.Println("Version: ", a.Metadata().Version)
 	w := a.NewWindow("FaceLoader")
 
 	s := gocron.NewScheduler(time.UTC)

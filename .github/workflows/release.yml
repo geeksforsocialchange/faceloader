@@ -44,9 +44,12 @@ jobs:
         run: |
           go install fyne.io/fyne/v2/cmd/fyne@latest
           $HOME/go/bin/fyne version
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
       - name: Fyne Package
         run: |
-          $HOME/go/bin/fyne package
+          $HOME/go/bin/fyne package --appVersion ${{ steps.get_version.outputs.VERSION }}
       - name: Upload package
         uses: softprops/action-gh-release@v1
         with:
@@ -71,9 +74,12 @@ jobs:
         run: |
           go install fyne.io/fyne/v2/cmd/fyne@latest
           Start-Process -PSPath "$HOME\go\bin\fyne.exe" -ArgumentList "version" -NoNewWindow -Wait
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
       - name: Fyne Package
         run: |
-          Start-Process -PSPath "$HOME\go\bin\fyne.exe" -ArgumentList "package" -NoNewWindow -Wait
+          Start-Process -PSPath "$HOME\go\bin\fyne.exe" -ArgumentList "package","--appVersion","${{ steps.get_version.outputs.VERSION }}" -NoNewWindow -Wait
       - name: Upload package
         uses: softprops/action-gh-release@v1
         with:
@@ -95,9 +101,12 @@ jobs:
         run: |
           go install fyne.io/fyne/v2/cmd/fyne@latest
           $HOME/go/bin/fyne version
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
       - name: Fyne Package
         run: |
-          $HOME/go/bin/fyne package
+          $HOME/go/bin/fyne package --appVersion ${{ steps.get_version.outputs.VERSION }}
           zip -r faceloader-mac.zip faceloader.app
       - name: Upload package
         uses: softprops/action-gh-release@v1
