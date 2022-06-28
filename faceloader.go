@@ -39,6 +39,7 @@ func update(a fyne.App) ics.Calendar {
 			log.Println(err)
 		}
 		for _, eventLink := range eventLinks {
+			log.Println(eventLink)
 			i, err := faceloader.InterfaceFromMbasic(eventLink)
 			if err != nil {
 				log.Println(err)
@@ -49,18 +50,18 @@ func update(a fyne.App) ics.Calendar {
 			}
 			cal.Components = append(cal.Components, &event)
 			pageCal.Components = append(pageCal.Components, &event)
-			if directory != "" {
-				f, err := os.OpenFile(path.Join(directory, fmt.Sprintf("%v.ics", page)), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
-				if err != nil {
-					log.Println(err)
-				}
-				err = cal.SerializeTo(f)
-				if err != nil {
-					log.Println(err)
-				}
-				f.Sync()
-				f.Close()
+		}
+		if directory != "" {
+			f, err := os.OpenFile(path.Join(directory, fmt.Sprintf("%v.ics", page)), os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+			if err != nil {
+				log.Println(err)
 			}
+			err = pageCal.SerializeTo(f)
+			if err != nil {
+				log.Println(err)
+			}
+			f.Sync()
+			f.Close()
 		}
 	}
 	return *cal
