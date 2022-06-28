@@ -76,7 +76,8 @@ jobs:
           Start-Process -PSPath "$HOME\go\bin\fyne.exe" -ArgumentList "version" -NoNewWindow -Wait
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+        shell: bash
       - name: Fyne Package
         run: |
           Start-Process -PSPath "$HOME\go\bin\fyne.exe" -ArgumentList "package","--appVersion","${{ steps.get_version.outputs.VERSION }}" -NoNewWindow -Wait
