@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -11,7 +12,9 @@ import (
 	ics "github.com/arran4/golang-ical"
 	faceloader "github.com/geeksforsocialchange/faceloader/parser"
 	"github.com/go-co-op/gocron"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -67,9 +70,29 @@ func update(a fyne.App) ics.Calendar {
 	return *cal
 }
 
+func detectNewVersion() string {
+	latestReleaseURL := "https://api.github.com/repos/geeksforsocialchange/faceloader/releases/latest"
+	req, _ := http.NewRequest("GET", latestReleaseURL, nil)
+	req.Header.Add("Accept", "application/vnd.github.v3.text-match+json")
+	req.Header.Add("Accept", "application/vnd.github.moondragon+json")
+	client := http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Failed to check latest version: ", err)
+	}
+	bodyText, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal("Error reading response", err)
+	}
+	result := make(map[string]interface{})
+	json.Unmarshal(bodyText, &result)
+	latestVersion := result["name"]
+	return latestVersion.(string)
+}
+
 func main() {
 	a := app.NewWithID("studio.gfsc.faceloader")
-	log.Println("Version: ", a.Metadata().Version)
+
 	w := a.NewWindow("FaceLoader")
 
 	s := gocron.NewScheduler(time.UTC)
@@ -144,5 +167,15 @@ func main() {
 
 	w.Resize(fyne.NewSize(600, 600))
 	w.CenterOnScreen()
+
+	currentVersion := a.Metadata().Version
+	latestVersion := detectNewVersion()
+	if currentVersion != latestVersion {
+		updateString := fmt.Sprintf("New version available: %v", latestVersion)
+		log.Println(updateString)
+		lblStatus.SetText(updateString)
+	}
+	
 	w.ShowAndRun()
+
 }
