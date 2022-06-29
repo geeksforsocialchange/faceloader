@@ -54,37 +54,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: "faceloader.tar.xz"
-  package-faceloader-windows:
-    needs: release
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install native deps
-        run: |
-          choco install msys2
-      - name: Install Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-      - name: Go test
-        run: |
-          go mod tidy
-          go test ./...
-      - name: Install Fyne CLI
-        run: |
-          go install fyne.io/fyne/v2/cmd/fyne@latest
-          Start-Process -PSPath "$HOME\go\bin\fyne.exe" -ArgumentList "version" -NoNewWindow -Wait
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-        shell: bash
-      - name: Fyne Package
-        run: |
-          Start-Process -PSPath "$HOME\go\bin\fyne.exe" -ArgumentList "package","--appVersion","${{ steps.get_version.outputs.VERSION }}" -NoNewWindow -Wait
-      - name: Upload package
-        uses: softprops/action-gh-release@v1
-        with:
-          files: faceloader.exe
   package-faceloader-mac:
     needs: release
     runs-on: macos-latest

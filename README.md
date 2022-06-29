@@ -28,7 +28,6 @@ Most users will want to download the [latest release](https://github.com/geeksfo
 
 * Apple Mac (faceloader-mac.zip)
 * Linux (faceloader.tar.xz)
-* Windows (faceloader.exe)
 
 Developers and people who want the absolutely latest version can get the sourcecode from git and run it that way:
 
