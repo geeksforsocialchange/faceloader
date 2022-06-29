@@ -79,6 +79,7 @@ func detectNewVersion() string {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Failed to check latest version: ", err)
+		return ""
 	}
 	bodyText, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -170,12 +171,12 @@ func main() {
 
 	currentVersion := a.Metadata().Version
 	latestVersion := detectNewVersion()
-	if currentVersion != latestVersion {
+	if currentVersion != latestVersion && latestVersion != "" {
 		updateString := fmt.Sprintf("New version available: %v", latestVersion)
 		log.Println(updateString)
 		lblStatus.SetText(updateString)
 	}
-	
+
 	w.ShowAndRun()
 
 }
