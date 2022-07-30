@@ -23,6 +23,8 @@ import (
 
 var cal ics.Calendar
 
+var m *faceloader.MBasic
+
 func update(a fyne.App) ics.Calendar {
 	rawPages := a.Preferences().String("FacebookPages")
 	log.Println(fmt.Sprintf("Loading events from %q", rawPages))
@@ -37,13 +39,13 @@ func update(a fyne.App) ics.Calendar {
 		pageCal := ics.NewCalendar()
 		pageCal.SetMethod(ics.MethodRequest)
 
-		eventLinks, err := faceloader.GetFacebookEventLinks(page)
+		eventLinks, err := m.GetFacebookEventLinks(page)
 		if err != nil {
 			log.Println(err)
 		}
 		for _, eventLink := range eventLinks {
 			log.Println(eventLink)
-			i, err := faceloader.InterfaceFromMbasic(eventLink)
+			i, err := m.InterfaceFromMbasic(eventLink)
 			if err != nil {
 				log.Println(err)
 			}
@@ -102,6 +104,8 @@ func main() {
 	})
 
 	s.StartAsync()
+
+	m = faceloader.NewMBasicClient()
 
 	txtFacebookPages := widget.NewMultiLineEntry()
 	txtFacebookPages.SetText(a.Preferences().String("FacebookPages"))
