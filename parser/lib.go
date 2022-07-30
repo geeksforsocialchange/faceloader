@@ -1,6 +1,7 @@
 package faceloader
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -8,12 +9,19 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/araddon/dateparse"
 	ics "github.com/arran4/golang-ical"
+	"io/ioutil"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
 )
+
+type MBasic struct {
+	httpClient      *http.Client
+	approvedCookies bool
+}
 
 // EventScheme The key parts that a Facebook json+ld event includes
 type EventScheme struct {
@@ -40,17 +48,52 @@ type EventScheme struct {
 	Url        string        `json:"url"`
 }
 
-func InterfaceFromMbasic(eventUrl string) (map[string]interface{}, error) {
+func NewMBasicClient() *MBasic {
+	jar, _ := cookiejar.New(nil)
+	return &MBasic{
+		httpClient: &http.Client{
+			Jar: jar,
+		},
+		approvedCookies: false,
+	}
+}
+
+func (m *MBasic) Get(link string) ([]byte, error) {
+	u, err := url.Parse(link)
+	if err != nil {
+		return nil, err
+	}
+
+	if !m.approvedCookies {
+		u, _ := url.Parse("https://mbasic.facebook.com/cookie/consent/?next_uri=https%3A%2F%2Fmbasic.facebook.com%2F")
+		resp, _ := m.httpClient.Post(u.String(), "application/x-www-form-urlencoded", bytes.NewBuffer([]byte("accept_only_essential=1")))
+		m.httpClient.Jar.SetCookies(u, resp.Cookies())
+		m.approvedCookies = true
+	}
+	resp, err := m.httpClient.Get(link)
+	if err != nil {
+		return nil, err
+	}
+	m.httpClient.Jar.SetCookies(u, resp.Cookies())
+
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, errors.New(fmt.Sprintf("status code error: %d %s", resp.StatusCode, resp.Status))
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	return respBody, err
+}
+
+func (m *MBasic) InterfaceFromMbasic(eventUrl string) (map[string]interface{}, error) {
 	var result []map[string]interface{}
-	res, err := http.Get(eventUrl)
+	res, err := m.Get(eventUrl)
 	if err != nil {
 		return nil, nil
 	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return nil, errors.New(fmt.Sprintf("status code error: %d %s", res.StatusCode, res.Status))
-	}
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res))
 	if err != nil {
 		return nil, err
 	}
@@ -130,17 +173,13 @@ func RemoveDuplicateStr(strSlice []string) []string {
 }
 
 // GetFacebookEventLinks find links to Facebook events from a Facebook page name
-func GetFacebookEventLinks(pageName string) ([]string, error) {
+func (m *MBasic) GetFacebookEventLinks(pageName string) ([]string, error) {
 	var links []string
-	res, err := http.Get(fmt.Sprintf("https://mbasic.facebook.com/%v?v=events", pageName))
+	res, err := m.Get(fmt.Sprintf("https://mbasic.facebook.com/%v?v=events", pageName))
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		return nil, errors.New(fmt.Sprintf("status code error: %d %s", res.StatusCode, res.Status))
-	}
-	doc, err := goquery.NewDocumentFromReader(res.Body)
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(res))
 	if err != nil {
 		return nil, err
 	}
