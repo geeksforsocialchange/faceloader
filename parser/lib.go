@@ -10,6 +10,7 @@ import (
 	"github.com/araddon/dateparse"
 	ics "github.com/arran4/golang-ical"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -66,7 +67,10 @@ func (m *MBasic) Get(link string) ([]byte, error) {
 
 	if !m.approvedCookies {
 		u, _ := url.Parse("https://mbasic.facebook.com/cookie/consent/?next_uri=https%3A%2F%2Fmbasic.facebook.com%2F")
-		resp, _ := m.httpClient.Post(u.String(), "application/x-www-form-urlencoded", bytes.NewBuffer([]byte("accept_only_essential=1")))
+		resp, err := m.httpClient.Post(u.String(), "application/x-www-form-urlencoded", bytes.NewBuffer([]byte("accept_only_essential=1")))
+		if err != nil {
+			return nil, err
+		}
 		m.httpClient.Jar.SetCookies(u, resp.Cookies())
 		m.approvedCookies = true
 	}
@@ -84,6 +88,7 @@ func (m *MBasic) Get(link string) ([]byte, error) {
 		return nil, errors.New(fmt.Sprintf("status code error: %d %s", resp.StatusCode, resp.Status))
 	}
 	respBody, err := ioutil.ReadAll(resp.Body)
+	printTitle(respBody)
 	return respBody, err
 }
 
@@ -196,4 +201,14 @@ func (m *MBasic) GetFacebookEventLinks(pageName string) ([]string, error) {
 	})
 
 	return RemoveDuplicateStr(links), nil
+}
+
+func printTitle(body []byte) {
+	doc, err := goquery.NewDocumentFromReader(bytes.NewBuffer(body))
+	if err != nil {
+		log.Println(err)
+	}
+	doc.Find("title").Each(func(i int, s *goquery.Selection) {
+		log.Println("Page title:", s.Text())
+	})
 }
