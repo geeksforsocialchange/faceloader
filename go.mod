@@ -3,7 +3,7 @@ module github.com/geeksforsocialchange/faceloader
 go 1.19
 
 require (
-	fyne.io/fyne/v2 v2.3.4
+	fyne.io/fyne/v2 v2.3.5
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/arran4/golang-ical v0.0.0-20210825232153-efac1f4cb8ac
@@ -11,7 +11,7 @@ require (
 )
 
 require (
-	fyne.io/systray v1.10.1-0.20230403195833-7dc3c09283d6 // indirect
+	fyne.io/systray v1.10.1-0.20230602210930-b6a2d6ca2a7b // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fredbi/uri v0.1.0 // indirect
