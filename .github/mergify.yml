@@ -23,7 +23,7 @@ pull_request_rules:
       - -title~=bump [^\s]+ from ([\d]+)\..+ to \1\.
     actions:
       comment:
-        message: "⚠️ @wheresalice: this is a major version bump and requires your attention"
+        message: "⚠️ this is a major version bump and requires your attention"
 
   # ===============================================================================
   # AUTOMATIC MERGE (APPROVALS)
@@ -38,17 +38,6 @@ pull_request_rules:
     actions:
       merge:
         method: rebase
-
-  # ===============================================================================
-  # AUTHOR
-  # ===============================================================================
-
-  - name: Auto-Assign Author
-    conditions:
-      - "#assignee=0"
-    actions:
-      assign:
-        users: ["wheresalice"]
 
   # ===============================================================================
   # ALERTS
