@@ -7,7 +7,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/arran4/golang-ical v0.1.0
-	github.com/go-co-op/gocron v1.33.1
+	github.com/go-co-op/gocron v1.34.2
 )
 
 require (
