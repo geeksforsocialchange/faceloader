@@ -6,7 +6,7 @@ require (
 	fyne.io/fyne/v2 v2.4.2
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
-	github.com/arran4/golang-ical v0.2.1
+	github.com/arran4/golang-ical v0.2.2
 	github.com/go-co-op/gocron v1.36.1
 )
 
