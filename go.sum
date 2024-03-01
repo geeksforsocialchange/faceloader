@@ -43,8 +43,8 @@ fyne.io/systray v1.10.1-0.20231115130155-104f5ef7839e h1:Hvs+kW2VwCzNToF3FmnIAzm
 fyne.io/systray v1.10.1-0.20231115130155-104f5ef7839e/go.mod h1:oM2AQqGJ1AMo4nNqZFYU8xYygSBZkW2hmdJ7n4yjedE=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/PuerkitoBio/goquery v1.9.0 h1:zgjKkdpRY9T97Q5DCtcXwfqkcylSFIVCocZmn2huTp8=
-github.com/PuerkitoBio/goquery v1.9.0/go.mod h1:cW1n6TmIMDoORQU5IU/P1T3tGFunOeXEpGP2WHRwkbY=
+github.com/PuerkitoBio/goquery v1.9.1 h1:mTL6XjbJTZdpfL+Gwl5U2h1l9yEkJjhmlTeV9VPW7UI=
+github.com/PuerkitoBio/goquery v1.9.1/go.mod h1:cW1n6TmIMDoORQU5IU/P1T3tGFunOeXEpGP2WHRwkbY=
 github.com/andybalholm/cascadia v1.3.2 h1:3Xi6Dw5lHF15JtdcmAHD3i1+T8plmv7BQ/nsViSLyss=
 github.com/andybalholm/cascadia v1.3.2/go.mod h1:7gtRlve5FxPPgIgX36uWBX58OdBsSS6lUvCFb+h7KvU=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
