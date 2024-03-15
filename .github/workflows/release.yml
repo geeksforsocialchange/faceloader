@@ -12,7 +12,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           prerelease: true
           generate_release_notes: true
@@ -51,7 +51,7 @@ jobs:
         run: |
           $HOME/go/bin/fyne package --appVersion ${{ steps.get_version.outputs.VERSION }}
       - name: Upload package
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: "faceloader.tar.xz"
   package-faceloader-mac:
@@ -79,6 +79,6 @@ jobs:
           $HOME/go/bin/fyne package --appVersion ${{ steps.get_version.outputs.VERSION }}
           zip -r faceloader-mac.zip faceloader.app
       - name: Upload package
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: "faceloader-mac.zip"
