@@ -1,10 +1,11 @@
 module github.com/geeksforsocialchange/faceloader
 
 go 1.19
+toolchain go1.24.1
 
 require (
 	fyne.io/fyne/v2 v2.5.5
-	github.com/PuerkitoBio/goquery v1.9.2
+	github.com/PuerkitoBio/goquery v1.10.2
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/arran4/golang-ical v0.3.1
 	github.com/go-co-op/gocron v1.37.0
@@ -13,7 +14,7 @@ require (
 require (
 	fyne.io/systray v1.11.0 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
-	github.com/andybalholm/cascadia v1.3.2 // indirect
+	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fredbi/uri v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -41,8 +42,8 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/image v0.18.0 // indirect
 	golang.org/x/mobile v0.0.0-20231127183840-76ac6878050a // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.20.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
