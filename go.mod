@@ -3,7 +3,7 @@ module github.com/geeksforsocialchange/faceloader
 go 1.19
 
 require (
-	fyne.io/fyne/v2 v2.6.2
+	fyne.io/fyne/v2 v2.6.3
 	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/arran4/golang-ical v0.3.1
